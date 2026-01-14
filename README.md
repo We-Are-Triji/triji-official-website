@@ -1,1 +1,0 @@
-# triji-official

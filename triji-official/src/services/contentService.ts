@@ -43,14 +43,17 @@ import {
 
 interface CMSConfig {
   baseUrl: string;
-  apiKey?: string;
   enabled: boolean;
 }
 
 // Configure your CMS settings here
+// NOTE: API keys should NEVER be stored in frontend code.
+// Authentication should be handled via:
+// 1. Backend proxy that adds credentials server-side
+// 2. HTTP-only cookies for session-based auth
+// 3. Public endpoints that don't require authentication
 const CMS_CONFIG: CMSConfig = {
   baseUrl: import.meta.env.VITE_CMS_API_URL || '',
-  apiKey: import.meta.env.VITE_CMS_API_KEY || '',
   enabled: import.meta.env.VITE_CMS_ENABLED === 'true',
 };
 
@@ -60,6 +63,7 @@ const CMS_CONFIG: CMSConfig = {
 
 /**
  * Generic fetch wrapper with error handling
+ * Uses credentials: 'include' for cookie-based auth instead of API keys
  */
 async function fetchFromCMS<T>(endpoint: string): Promise<T | null> {
   if (!CMS_CONFIG.enabled || !CMS_CONFIG.baseUrl) {
@@ -71,12 +75,9 @@ async function fetchFromCMS<T>(endpoint: string): Promise<T | null> {
       'Content-Type': 'application/json',
     };
 
-    if (CMS_CONFIG.apiKey) {
-      headers['Authorization'] = `Bearer ${CMS_CONFIG.apiKey}`;
-    }
-
     const response = await fetch(`${CMS_CONFIG.baseUrl}${endpoint}`, {
       headers,
+      credentials: 'include', // Use cookies for authentication
     });
 
     if (!response.ok) {
@@ -94,6 +95,7 @@ async function fetchFromCMS<T>(endpoint: string): Promise<T | null> {
 
 /**
  * POST request wrapper for CMS
+ * Uses credentials: 'include' for cookie-based auth instead of API keys
  */
 async function postToCMS<T, R>(endpoint: string, data: T): Promise<ApiResponse<R>> {
   if (!CMS_CONFIG.enabled || !CMS_CONFIG.baseUrl) {
@@ -110,13 +112,10 @@ async function postToCMS<T, R>(endpoint: string, data: T): Promise<ApiResponse<R
       'Content-Type': 'application/json',
     };
 
-    if (CMS_CONFIG.apiKey) {
-      headers['Authorization'] = `Bearer ${CMS_CONFIG.apiKey}`;
-    }
-
     const response = await fetch(`${CMS_CONFIG.baseUrl}${endpoint}`, {
       method: 'POST',
       headers,
+      credentials: 'include', // Use cookies for authentication
       body: JSON.stringify(data),
     });
 

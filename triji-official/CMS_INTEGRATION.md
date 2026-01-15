@@ -68,9 +68,9 @@ export async function getHeroContent(): Promise<HeroContent> {
       Authorization: `Bearer ${CMS_CONFIG.apiKey}`,
     },
   });
-  
+
   const { data } = await response.json();
-  
+
   // Transform Strapi response to match HeroContent type
   return {
     tag: data.attributes.tag,
@@ -92,7 +92,7 @@ export async function getHeroContent(): Promise<HeroContent> {
 #### Example: Contentful Integration
 
 ```typescript
-import { createClient } from 'contentful';
+import { createClient } from "contentful";
 
 const client = createClient({
   space: process.env.VITE_CONTENTFUL_SPACE_ID,
@@ -101,20 +101,22 @@ const client = createClient({
 
 export async function getProjects(): Promise<Project[]> {
   const entries = await client.getEntries({
-    content_type: 'project',
-    order: 'fields.order',
+    content_type: "project",
+    order: "fields.order",
   });
-  
+
   return entries.items.map((item: any) => ({
     id: item.sys.id,
     slug: item.fields.slug,
     title: item.fields.title,
     category: item.fields.category,
     description: item.fields.description,
-    image: item.fields.image ? {
-      url: `https:${item.fields.image.fields.file.url}`,
-      alt: item.fields.image.fields.title,
-    } : undefined,
+    image: item.fields.image
+      ? {
+          url: `https:${item.fields.image.fields.file.url}`,
+          alt: item.fields.image.fields.title,
+        }
+      : undefined,
     featured: item.fields.featured,
     order: item.fields.order,
   }));
@@ -128,14 +130,14 @@ The `submitInquiry` function in the content service handles form submissions:
 ```typescript
 export async function submitInquiry(inquiry: InquirySubmission) {
   const response = await fetch(`${CMS_CONFIG.baseUrl}/api/inquiries`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${CMS_CONFIG.apiKey}`,
     },
     body: JSON.stringify(inquiry),
   });
-  
+
   return response.json();
 }
 ```
@@ -144,33 +146,33 @@ export async function submitInquiry(inquiry: InquirySubmission) {
 
 When `VITE_CMS_ENABLED=true`, the content service expects these endpoints:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/content/site` | GET | All site content |
-| `/api/content/navigation` | GET | Navigation content |
-| `/api/content/hero` | GET | Hero section |
-| `/api/content/services` | GET | Services section |
-| `/api/content/projects` | GET | Projects section |
-| `/api/content/contact` | GET | Contact section |
-| `/api/content/footer` | GET | Footer content |
-| `/api/services` | GET | All services |
-| `/api/services/:id` | GET | Single service |
-| `/api/projects` | GET | All projects |
-| `/api/projects/:slug` | GET | Single project |
-| `/api/inquiries` | POST | Submit inquiry |
+| Endpoint                  | Method | Description        |
+| ------------------------- | ------ | ------------------ |
+| `/api/content/site`       | GET    | All site content   |
+| `/api/content/navigation` | GET    | Navigation content |
+| `/api/content/hero`       | GET    | Hero section       |
+| `/api/content/services`   | GET    | Services section   |
+| `/api/content/projects`   | GET    | Projects section   |
+| `/api/content/contact`    | GET    | Contact section    |
+| `/api/content/footer`     | GET    | Footer content     |
+| `/api/services`           | GET    | All services       |
+| `/api/services/:id`       | GET    | Single service     |
+| `/api/projects`           | GET    | All projects       |
+| `/api/projects/:slug`     | GET    | Single project     |
+| `/api/inquiries`          | POST   | Submit inquiry     |
 
 ## Using Content in Components
 
 ### Option 1: Content Context (Recommended)
 
 ```tsx
-import { useContentContext } from './context/ContentContext';
+import { useContentContext } from "./context/ContentContext";
 
 function MyComponent() {
   const { content, loading, error } = useContentContext();
-  
+
   if (loading) return <LoadingSpinner />;
-  
+
   return <div>{content.hero.title}</div>;
 }
 ```
@@ -178,12 +180,12 @@ function MyComponent() {
 ### Option 2: Individual Hooks
 
 ```tsx
-import { useHeroContent, useProjects } from './hooks/useContent';
+import { useHeroContent, useProjects } from "./hooks/useContent";
 
 function MyComponent() {
   const { data: hero, loading: heroLoading } = useHeroContent();
   const { data: projects, loading: projectsLoading } = useProjects();
-  
+
   // ...
 }
 ```
@@ -202,12 +204,19 @@ Services can use predefined icons or custom SVGs from the CMS:
 
 ```typescript
 // Predefined icon types
-type ServiceIconType = 'code' | 'smartphone' | 'cloud' | 'database' | 'palette' | 'shield' | 'custom';
+type ServiceIconType =
+  | "code"
+  | "smartphone"
+  | "cloud"
+  | "database"
+  | "palette"
+  | "shield"
+  | "custom";
 
 // Using custom SVG from CMS
 const service = {
-  iconType: 'custom',
-  customIconSvg: '<svg>...</svg>', // Raw SVG from CMS
+  iconType: "custom",
+  customIconSvg: "<svg>...</svg>", // Raw SVG from CMS
 };
 ```
 
@@ -220,13 +229,16 @@ For production, consider adding caching to the content service:
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-async function cachedFetch<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+async function cachedFetch<T>(
+  key: string,
+  fetchFn: () => Promise<T>
+): Promise<T> {
   const cached = cache.get(key);
-  
+
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
   }
-  
+
   const data = await fetchFn();
   cache.set(key, { data, timestamp: Date.now() });
   return data;
@@ -242,6 +254,7 @@ VITE_CMS_ENABLED=false
 ```
 
 This is useful for:
+
 - Local development
 - Fallback when CMS is unavailable
 - Static site generation

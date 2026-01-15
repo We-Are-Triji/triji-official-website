@@ -2,12 +2,16 @@
  * Contact Section Component
  * 
  * Contact form section with CMS-driven content support.
+ * Includes input sanitization, validation, and rate limiting.
  */
 
 import { useState, type FormEvent } from 'react';
 import type { ContactContent, FormField } from '../../types/content';
 import { useInquirySubmit } from '../../hooks/useContent';
+import { useRateLimit } from '../../hooks/useRateLimit';
 import { ArrowRightIcon } from '../icons/ServiceIcons';
+import { sanitizeInquiry } from '../../utils/sanitize';
+import { validateInquiry } from '../../utils/validation';
 
 interface ContactProps {
   content: ContactContent;
@@ -15,6 +19,10 @@ interface ContactProps {
 
 export const Contact: React.FC<ContactProps> = ({ content }) => {
   const { submit, loading, error, success, reset } = useInquirySubmit();
+  const { canSubmit, recordSubmit, timeRemaining, isRateLimited } = useRateLimit({
+    limitMs: 60000, // 1 minute between submissions
+    storageKey: 'triji_inquiry_rate_limit',
+  });
   
   // Initialize form data based on form fields from CMS
   const initialFormData = content.formFields.reduce((acc, field) => {
@@ -23,24 +31,47 @@ export const Contact: React.FC<ContactProps> = ({ content }) => {
   }, {} as Record<string, string>);
   
   const [formData, setFormData] = useState(initialFormData);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     if (error) reset();
+    if (validationErrors.length > 0) setValidationErrors([]);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    const submitted = await submit({
+    // Check rate limiting
+    if (!canSubmit()) {
+      setValidationErrors([`Please wait ${timeRemaining()} seconds before submitting again.`]);
+      return;
+    }
+    
+    // Prepare form data for validation
+    const inquiryData = {
       name: formData.name || '',
       email: formData.email || '',
       subject: formData.subject || '',
       message: formData.message || '',
-    });
+    };
+    
+    // Validate input
+    const validation = validateInquiry(inquiryData);
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      return;
+    }
+    
+    // Sanitize input before submission
+    const sanitizedData = sanitizeInquiry(inquiryData);
+    
+    const submitted = await submit(sanitizedData);
 
     if (submitted) {
+      recordSubmit(); // Record submission for rate limiting
       setFormData(initialFormData);
+      setValidationErrors([]);
     }
   };
 
@@ -112,6 +143,22 @@ export const Contact: React.FC<ContactProps> = ({ content }) => {
               </div>
             )}
             
+            {validationErrors.length > 0 && (
+              <div className="form-error">
+                <ul className="validation-errors">
+                  {validationErrors.map((err, index) => (
+                    <li key={index}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {isRateLimited && (
+              <div className="form-warning">
+                Please wait {timeRemaining()} seconds before submitting again.
+              </div>
+            )}
+            
             {rowFields.length > 0 && (
               <div className="form-row">
                 {rowFields.map((field) => (
@@ -133,7 +180,7 @@ export const Contact: React.FC<ContactProps> = ({ content }) => {
             <button 
               type="submit" 
               className="btn btn-primary btn-submit"
-              disabled={loading}
+              disabled={loading || isRateLimited}
             >
               {loading ? 'Sending...' : content.submitButton.label} 
               {!loading && <ArrowRightIcon />}

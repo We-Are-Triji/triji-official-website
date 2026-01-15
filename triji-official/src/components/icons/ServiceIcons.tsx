@@ -7,6 +7,7 @@
 
 import React from 'react';
 import type { ServiceIconType } from '../../types/content';
+import { sanitizeSvg } from '../../utils/sanitize';
 
 interface IconProps {
   size?: number;
@@ -202,13 +203,14 @@ export const ServiceIcon: React.FC<ServiceIconProps> = ({
   size = 32, 
   className 
 }) => {
-  // If custom SVG is provided, render it
+  // If custom SVG is provided, sanitize and render it
   if (iconType === 'custom' && customSvg) {
+    const sanitizedSvg = sanitizeSvg(customSvg);
     return (
       <div 
         className={className}
         style={{ width: size, height: size }}
-        dangerouslySetInnerHTML={{ __html: customSvg }}
+        dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
       />
     );
   }

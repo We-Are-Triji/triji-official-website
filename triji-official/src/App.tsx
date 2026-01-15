@@ -9,6 +9,7 @@
 import './App.css'
 import { ContentProvider, useContentContext } from './context/ContentContext'
 import { Navbar, Hero, Services, Projects, Contact, Footer } from './components/sections'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 /**
  * Main content component that consumes the content context
@@ -44,13 +45,15 @@ function AppContent() {
 }
 
 /**
- * App wrapper with ContentProvider
+ * App wrapper with ErrorBoundary and ContentProvider
  */
 function App() {
   return (
-    <ContentProvider>
-      <AppContent />
-    </ContentProvider>
+    <ErrorBoundary>
+      <ContentProvider>
+        <AppContent />
+      </ContentProvider>
+    </ErrorBoundary>
   );
 }
 
